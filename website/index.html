@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,40 +15,160 @@
 			<p>Пользователь: <span id="userName"></span></p>
 			<p>User ID: <span id="userId"></span></p>
 		</div>
-
 		<script>
-			document.getElementById("registerBtn").addEventListener("click", () => {
-				// Перенаправляем пользователя к боту
-				window.location.href = "https://t.me/AggregatorCarServiceBot?start=register"
-			})
+			let ws
+			const LOCAL_STORAGE_KEY = {
+				START_TOKEN: "startToken",
+				AUTH_TOKEN: "authToken",
+				USER_ID: "userId",
+			}
 
-			// Функция для проверки статуса пользователя
-			async function checkUserStatus(userId) {
+			function generateStartToken() {
+				return "start-" + Math.random().toString(36).substr(2, 9)
+			}
+
+			function initWebSocket() {
+				ws = new WebSocket("ws://localhost:8080")
+
+				ws.onopen = () => {
+					console.log("WebSocket соединение установлено")
+
+					const authToken = localStorage.getItem(LOCAL_STORAGE_KEY.AUTH_TOKEN)
+					const userId = localStorage.getItem(LOCAL_STORAGE_KEY.USER_ID)
+
+					if (authToken && !isTokenExpired(authToken)) {
+						checkUserStatus(authToken)
+					} else if (userId) {
+						sendUserId(userId)
+					} else {
+						const startToken = localStorage.getItem(LOCAL_STORAGE_KEY.START_TOKEN)
+						if (startToken) {
+							sendStartToken(startToken)
+						} else {
+							const newStartToken = generateStartToken()
+							localStorage.setItem(LOCAL_STORAGE_KEY.START_TOKEN, newStartToken)
+							sendStartToken(newStartToken)
+						}
+					}
+				}
+
+				ws.onerror = (error) => {
+					console.error("Ошибка WebSocket соединения:", error)
+				}
+
+				ws.onclose = () => {
+					console.log("WebSocket соединение закрыто")
+					setTimeout(initWebSocket, 5000) // Попробуйте восстановить соединение через некоторое время
+				}
+
+				ws.onmessage = function (event) {
+					console.log("Получено сообщение от WebSocket:", event.data)
+					try {
+						const data = JSON.parse(event.data)
+						if (data.type === "TOKEN") {
+							const token = data.token
+							console.log("Получен токен:", token)
+							localStorage.setItem(LOCAL_STORAGE_KEY.AUTH_TOKEN, token)
+							localStorage.removeItem(LOCAL_STORAGE_KEY.START_TOKEN)
+							checkUserStatus(token)
+						} else if (data.type === "START_TOKEN") {
+							const startToken = data.token
+							console.log("Получен startToken:", startToken)
+							localStorage.setItem(LOCAL_STORAGE_KEY.START_TOKEN, startToken)
+						}
+					} catch (error) {
+						console.error("Ошибка обработки сообщения WebSocket:", error)
+					}
+				}
+			}
+
+			async function sendUserId(userId) {
 				try {
-					const response = await fetch(`http://127.0.0.1:3000/api/status?id=${userId}`)
+					console.log("Токен истек. Попытка обновить токен.")
+
+					if (userId) {
+						// Запрос нового токена по userId
+						const tokenResponse = await fetch(`http://127.0.0.1:3000/api/get-token?userId=${userId}`)
+
+						if (tokenResponse.ok) {
+							const { token: newToken } = await tokenResponse.json()
+
+							// Сохраняем новый токен в localStorage
+							localStorage.setItem(LOCAL_STORAGE_KEY.AUTH_TOKEN, newToken)
+
+							// Повторно проверяем статус пользователя с новым токеном
+							return checkUserStatus(newToken)
+						} else {
+							throw new Error(`Ошибка получения нового токена: ${tokenResponse.status}`)
+						}
+					} else {
+						throw new Error("Не удалось получить userId")
+					}
+				} catch (error) {
+					console.error("Ошибка при обновлении токена:", error)
+				}
+			}
+
+			function sendStartToken(startToken) {
+				ws.send(JSON.stringify({ type: "START_TOKEN", token: startToken }))
+			}
+
+			function sendToken(token) {
+				ws.send(JSON.stringify({ type: "TOKEN", token: token }))
+			}
+
+			function isTokenExpired(token) {
+				try {
+					const payload = JSON.parse(atob(token.split(".")[1]))
+					const currentTime = Math.floor(Date.now() / 1000)
+					return payload.exp < currentTime
+				} catch (error) {
+					console.error("Ошибка при проверке срока действия токена:", error)
+					return true
+				}
+			}
+
+			async function checkUserStatus(token) {
+				console.log("Проверка статуса пользователя с токеном:", token)
+				try {
+					const response = await fetch("http://127.0.0.1:3000/api/status", {
+						method: "GET",
+						headers: {
+							Authorization: `Bearer ${token}`,
+						},
+					})
+
+					if (!response.ok) {
+						throw new Error(`HTTP error! status: ${response.status}`)
+					}
+
 					const data = await response.json()
+					console.log("Ответ от API статус пользователя:", data)
 
 					if (data.success) {
-						// Пользователь найден, обновляем интерфейс
 						document.getElementById("registration").style.display = "none"
 						document.getElementById("userInfo").style.display = "block"
 						document.getElementById("userName").innerText = `${data.user.first_name} ${data.user.last_name}`
 						document.getElementById("userId").innerText = data.user.id
+						localStorage.setItem(LOCAL_STORAGE_KEY.USER_ID, data.user.id)
 					} else {
-						console.log("User not found")
+						console.log("Пользователь не найден")
 					}
 				} catch (error) {
-					console.error("Error checking user status:", error)
+					console.error("Ошибка при проверке статуса пользователя:", error)
 				}
 			}
 
-			// Проверяем наличие userId в localStorage
-			const storedUserId = localStorage.getItem("userId")
-			if (storedUserId) {
-				checkUserStatus(storedUserId)
-			} else {
-				console.log("No userId found in localStorage")
-			}
+			document.getElementById("registerBtn").addEventListener("click", function () {
+				const startToken = localStorage.getItem(LOCAL_STORAGE_KEY.START_TOKEN)
+				if (startToken) {
+					window.location.href = `https://t.me/AggregatorCarServiceBot?start=${startToken}`
+				} else {
+					console.error("startToken не найден. Невозможно перейти к боту.")
+				}
+			})
+
+			window.onload = initWebSocket
 		</script>
 	</body>
 </html>
