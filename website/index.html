@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Регистрация через Telegram</title>
+	</head>
+	<body>
+		<div id="registration">
+			<h1>Регистрация через Telegram</h1>
+			<button id="registerBtn">Зарегистрироваться через Telegram</button>
+		</div>
+		<div id="userInfo" style="display: none">
+			<h1>Успешно зарегистрирован</h1>
+			<p>Пользователь: <span id="userName"></span></p>
+			<p>User ID: <span id="userId"></span></p>
+		</div>
+
+		<script>
+			document.getElementById("registerBtn").addEventListener("click", () => {
+				// Перенаправляем пользователя к боту
+				window.location.href = "https://t.me/AggregatorCarServiceBot?start=register"
+			})
+
+			// Функция для проверки статуса пользователя
+			async function checkUserStatus(userId) {
+				try {
+					const response = await fetch(`http://127.0.0.1:3000/api/status?id=${userId}`)
+					const data = await response.json()
+
+					if (data.success) {
+						// Пользователь найден, обновляем интерфейс
+						document.getElementById("registration").style.display = "none"
+						document.getElementById("userInfo").style.display = "block"
+						document.getElementById("userName").innerText = `${data.user.first_name} ${data.user.last_name}`
+						document.getElementById("userId").innerText = data.user.id
+					} else {
+						console.log("User not found")
+					}
+				} catch (error) {
+					console.error("Error checking user status:", error)
+				}
+			}
+
+			// Проверяем наличие userId в localStorage
+			const storedUserId = localStorage.getItem("userId")
+			if (storedUserId) {
+				checkUserStatus(storedUserId)
+			} else {
+				console.log("No userId found in localStorage")
+			}
+		</script>
+	</body>
+</html>
