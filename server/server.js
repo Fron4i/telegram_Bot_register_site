@@ -6,7 +6,7 @@ const bodyParser = require("body-parser")
 const dotenv = require("dotenv")
 dotenv.config()
 
-const { User, sequelize } = require("../bd/database") // Подключение к базе данных
+const { User, sequelize } = require("../bd/database")
 
 const app = express()
 const port = 3000
@@ -125,5 +125,5 @@ app.get("/api/get-token", async (req, res) => {
 // Запуск сервера и вывод всех данных из БД
 app.listen(port, async () => {
 	console.log(`API server running on http://127.0.0.1:${port}`)
-	await displayAllUsers() // Вызов функции для вывода всех пользователей
+	await displayAllUsers()
 })

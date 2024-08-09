@@ -1,15 +1,16 @@
 const { Sequelize, DataTypes } = require("sequelize")
 
-// Создаем подключение к базе данных SQLite
+// Create the Sequelize connection with logging disabled
 const sequelize = new Sequelize({
 	dialect: "sqlite",
 	storage: "database.sqlite",
+	logging: false, // Disable logging
 })
 
 // Определение модели пользователя
 const User = sequelize.define("User", {
 	id: {
-		type: DataTypes.STRING,
+		type: DataTypes.INTEGER,
 		primaryKey: true,
 	},
 	first_name: {

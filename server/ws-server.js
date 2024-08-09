@@ -4,7 +4,7 @@ const wss = new WebSocket.Server({ port: 8081 })
 const pendingResponses = new Map() // Хранение отложенных ответов
 
 wss.on("connection", (ws) => {
-	console.log("Новый клиент подключен")
+	//console.log("Новый клиент подключен")
 
 	ws.on("message", (message) => {
 		const messageString = message.toString() // Преобразование буфера в строку
@@ -70,6 +70,8 @@ wss.on("connection", (ws) => {
 	})
 
 	ws.on("close", () => {
-		console.log("Клиент отключился")
+		//console.log("Клиент отключился")
 	})
 })
+
+console.log("WebSocket running on http://127.0.0.1:8081")

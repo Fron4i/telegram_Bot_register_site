@@ -7,7 +7,7 @@
     "2": "concurrently \"node bd/database.js\" \"node server/server.js\"",
     "3": "concurrently \"node bd/database.js\" ",
     "4": "concurrently  \"node server/server.js\"",
-    "f": "concurrently \"node server/ws-server.js\" \"node bot/bot.js\" \"node bd/database.js\" \"node server/server.js\""
+    "f": "concurrently \"node server/server.js\" \"node bd/database.js\" \"node server/ws-server.js\" \"node bot/bot.js\""
   },
   "keywords": [],
   "author": "",
