@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "1": "concurrently \"node server/ws-server.js\" \"node bot/bot.js\"",
+    "2": "concurrently \"node bd/database.js\" \"node server/server.js\"",
+    "3": "concurrently \"node bd/database.js\" ",
+    "4": "concurrently  \"node server/server.js\"",
+    "f": "concurrently \"node server/ws-server.js\" \"node bot/bot.js\" \"node bd/database.js\" \"node server/server.js\""
   },
   "keywords": [],
   "author": "",
@@ -14,9 +18,16 @@
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "dotenv-expand": "^11.0.6",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "node-telegram-bot-api": "^0.63.0",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7",
+    "telegram_bot_register_site": "file:",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

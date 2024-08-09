@@ -4,7 +4,7 @@ const WebSocket = require("ws")
 
 const token = "7252583854:AAEMmFsQKr9LoQ7fVC3fiNLO60WWjIO_irE"
 const bot = new TelegramBot(token, { polling: true })
-const ws = new WebSocket("ws://localhost:8080")
+const ws = new WebSocket("ws://localhost:8081")
 
 // Хранилище для startToken
 const startTokenMap = new Map()

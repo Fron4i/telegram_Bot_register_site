@@ -2,75 +2,119 @@ const express = require("express")
 const cors = require("cors")
 const jwt = require("jsonwebtoken")
 const bodyParser = require("body-parser")
-require("dotenv").config() // Загружаем переменные окружения из .env файла
+
+const dotenv = require("dotenv")
+dotenv.config()
+
+const { User, sequelize } = require("../bd/database") // Подключение к базе данных
 
 const app = express()
 const port = 3000
 
-const secretKey = process.env.JWT_SECRET_KEY // Например: 'ваш_секретный_ключ'
-
+const secretKey = process.env.JWT_SECRET_KEY
 app.use(cors())
 app.use(bodyParser.json())
 
-const users = {} // Хранение информации о пользователях и токенах
+function formatDateTimeRU(date) {
+	const options = {
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+		hour: "numeric",
+		minute: "numeric",
+		second: "numeric",
+		timeZone: "Europe/Moscow",
+	}
+	return new Date(date).toLocaleString("ru-RU", options)
+}
 
 function authenticateToken(req, res, next) {
 	const authHeader = req.headers["authorization"]
 	const token = authHeader && authHeader.split(" ")[1]
-	if (token == null) return res.sendStatus(401) // Если токен отсутствует
+	if (token == null) return res.sendStatus(401)
 
 	jwt.verify(token, secretKey, (err, user) => {
-		if (err) return res.sendStatus(403) // Если токен недействителен
+		if (err) return res.sendStatus(403)
 		req.userId = user.userId
 		next()
 	})
 }
 
+// Функция для вывода всех данных из базы данных
+async function displayAllUsers() {
+	try {
+		const users = await User.findAll() // Получение всех пользователей
+		console.log("All registered users:")
+		users.forEach((user) => {
+			const userJson = user.toJSON()
+			userJson.createdAt = formatDateTimeRU(userJson.createdAt)
+			userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
+			userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
+			console.log(userJson) // Вывод каждого пользователя
+		})
+	} catch (error) {
+		console.error("Error retrieving users:", error)
+	}
+}
+
 // Регистрация пользователя
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
 	const { id, first_name, last_name } = req.body
 	if (!id) {
 		return res.status(400).json({ success: false, message: "Missing Telegram user ID" })
 	}
 
-	const user = { id, first_name, last_name }
-	users[id] = { ...user, token: null, tokenExpires: null }
-	console.log("User registered successfully:", user)
+	// Создание или обновление пользователя в базе данных
+	const [user, created] = await User.upsert({
+		id,
+		first_name,
+		last_name,
+	})
+
+	console.log("User registered successfully:", user.toJSON())
 
 	// Создание нового токена
 	const token = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
-	users[id].token = token
-	users[id].tokenExpires = Date.now() + 6 * 60 * 60 * 1000 // Время истечения токена в миллисекундах
+	user.token = token
+	user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+	await user.save()
 
-	res.json({ success: true, token, user })
+	const userJson = user.toJSON()
+	userJson.createdAt = formatDateTimeRU(userJson.createdAt)
+	userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
+	userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
+
+	res.json({ success: true, token, user: userJson })
 })
 
 // Получение статуса пользователя
-app.get("/api/status", authenticateToken, (req, res) => {
+app.get("/api/status", authenticateToken, async (req, res) => {
 	const userId = req.userId
-	const user = users[userId]
+	const user = await User.findByPk(userId)
 	if (user) {
-		res.json({ success: true, user })
+		const userJson = user.toJSON()
+		userJson.createdAt = formatDateTimeRU(userJson.createdAt)
+		userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
+		userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
+		res.json({ success: true, user: userJson })
 	} else {
 		res.json({ success: false, message: "User not found" })
 	}
 })
 
 // Получение токена по userId
-app.get("/api/get-token", (req, res) => {
+app.get("/api/get-token", async (req, res) => {
 	const userId = req.query.userId
-	const user = users[userId]
+	const user = await User.findByPk(userId)
 
 	if (user) {
-		// Проверка истечения токена
 		if (user.tokenExpires < Date.now()) {
-			// Токен истек, создаем новый
 			const newToken = jwt.sign({ userId: userId }, secretKey, { expiresIn: "6h" })
-			users[userId].token = newToken
-			users[userId].tokenExpires = Date.now() + 6 * 60 * 60 * 1000 // Обновляем время истечения
+			user.token = newToken
+			user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+			await user.save()
 			res.json({ token: newToken })
 		} else {
-			// Возвращаем текущий токен
 			res.json({ token: user.token })
 		}
 	} else {
@@ -78,6 +122,8 @@ app.get("/api/get-token", (req, res) => {
 	}
 })
 
-app.listen(port, () => {
+// Запуск сервера и вывод всех данных из БД
+app.listen(port, async () => {
 	console.log(`API server running on http://127.0.0.1:${port}`)
+	await displayAllUsers() // Вызов функции для вывода всех пользователей
 })
