@@ -4,7 +4,7 @@ const WebSocket = require("ws")
 
 const token = "7252583854:AAEMmFsQKr9LoQ7fVC3fiNLO60WWjIO_irE"
 const bot = new TelegramBot(token, { polling: true })
-const ws = new WebSocket("ws://localhost:8081")
+const ws = new WebSocket("ws://109.172.115.176:8081")
 
 // Хранилище для startToken
 const startTokenMap = new Map()
@@ -34,7 +34,7 @@ bot.on("contact", (msg) => {
 	const startToken = startTokenMap.get(chatId) // Получаем startToken для текущего пользователя
 
 	axios
-		.post("http://127.0.0.1:3000/api/register", {
+		.post("http://109.172.115.176:3000/api/register", {
 			id: contact.user_id,
 			first_name: contact.first_name,
 			last_name: contact.last_name,
@@ -58,7 +58,7 @@ bot.on("contact", (msg) => {
 						[
 							{
 								text: "Перейти на сайт",
-								url: "http://127.0.0.1:5500/telegram_Bot_register_site/website/index.html", // Замените на URL вашего сайта
+								url: "http://109.172.115.176:5500/telegram_Bot_register_site/website/index.html", // Замените на URL вашего сайта
 							},
 						],
 					],

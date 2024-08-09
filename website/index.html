@@ -28,7 +28,7 @@
 			}
 
 			function initWebSocket() {
-				ws = new WebSocket("ws://localhost:8081")
+				ws = new WebSocket("ws://109.172.115.176:8081")
 
 				ws.onopen = () => {
 					console.log("WebSocket соединение установлено")
@@ -88,7 +88,7 @@
 
 					if (userId) {
 						// Запрос нового токена по userId
-						const tokenResponse = await fetch(`http://127.0.0.1:3000/api/get-token?userId=${userId}`)
+						const tokenResponse = await fetch(`http://109.172.115.176:3000/api/get-token?userId=${userId}`)
 
 						if (tokenResponse.ok) {
 							const { token: newToken } = await tokenResponse.json()
@@ -131,7 +131,7 @@
 			async function checkUserStatus(token) {
 				console.log("Проверка статуса пользователя с токеном:", token)
 				try {
-					const response = await fetch("http://127.0.0.1:3000/api/status", {
+					const response = await fetch("http://109.172.115.176:3000/api/status", {
 						method: "GET",
 						headers: {
 							Authorization: `Bearer ${token}`,

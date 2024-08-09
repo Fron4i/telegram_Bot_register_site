@@ -124,6 +124,6 @@ app.get("/api/get-token", async (req, res) => {
 
 // Запуск сервера и вывод всех данных из БД
 app.listen(port, async () => {
-	console.log(`API server running on http://127.0.0.1:${port}`)
+	console.log(`API server running on http://109.172.115.176:${port}`)
 	await displayAllUsers()
 })
