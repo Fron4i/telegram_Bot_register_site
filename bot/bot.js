@@ -4,7 +4,7 @@ const WebSocket = require("ws")
 
 const token = "7252583854:AAEMmFsQKr9LoQ7fVC3fiNLO60WWjIO_irE"
 const bot = new TelegramBot(token, { polling: true })
-const ws = new WebSocket("wss://car-service.fvds.ru:8081")
+const ws = new WebSocket("wss://car-service.fvds.ru/ws/")
 
 // Хранилище для startToken
 const startTokenMap = new Map()
@@ -34,7 +34,7 @@ bot.on("contact", (msg) => {
 	const startToken = startTokenMap.get(chatId) // Получаем startToken для текущего пользователя
 
 	axios
-		.post("https://car-service.fvds.ru:3000/api/register", {
+		.post("https://car-service.fvds.ru/api/register", {
 			id: contact.user_id,
 			first_name: contact.first_name,
 			last_name: contact.last_name,

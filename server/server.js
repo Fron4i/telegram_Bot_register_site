@@ -136,6 +136,6 @@ const sslServer = https.createServer(
 
 // Запуск HTTPS-сервера и вывод всех данных из БД
 sslServer.listen(port, async () => {
-	console.log(`API server running on https://car-service.fvds.ru:${port}`)
+	console.log(`API server running on https://car-service.fvds.ru/api/`)
 	await displayAllUsers()
 })

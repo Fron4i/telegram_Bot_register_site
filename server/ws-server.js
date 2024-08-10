@@ -97,5 +97,5 @@ wss.on("connection", (ws) => {
 
 // Запуск HTTPS-сервера и WebSocket-сервера на одном порту
 httpsServer.listen(8081, () => {
-	console.log("WebSocket сервер запущен на wss://car-service.fvds.ru:8081")
+	console.log("WebSocket сервер запущен на wss://car-service.fvds.ru/ws/")
 })

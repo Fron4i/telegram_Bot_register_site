@@ -28,7 +28,7 @@
 			}
 
 			function initWebSocket() {
-				ws = new WebSocket("wss://car-service.fvds.ru:8081")
+				ws = new WebSocket("wss://car-service.fvds.ru/ws/")
 
 				ws.onopen = () => {
 					console.log("WebSocket соединение установлено")
@@ -88,7 +88,7 @@
 
 					if (userId) {
 						// Запрос нового токена по userId
-						const tokenResponse = await fetch(`https://car-service.fvds.ru:3000/api/get-token?userId=${userId}`)
+						const tokenResponse = await fetch(`https://car-service.fvds.ru/api/get-token?userId=${userId}`)
 
 						if (tokenResponse.ok) {
 							const { token: newToken } = await tokenResponse.json()
@@ -131,7 +131,7 @@
 			async function checkUserStatus(token) {
 				console.log("Проверка статуса пользователя с токеном:", token)
 				try {
-					const response = await fetch("https://car-service.fvds.ru:3000/api/status", {
+					const response = await fetch("https://car-service.fvds.ru/api/status", {
 						method: "GET",
 						headers: {
 							Authorization: `Bearer ${token}`,
