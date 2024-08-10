@@ -1,7 +1,6 @@
 const fs = require("fs")
 const https = require("https")
 const WebSocket = require("ws")
-const path = require("path")
 
 const keyPath = "/etc/letsencrypt/live/car-service.fvds.ru/privkey.pem"
 const certPath = "/etc/letsencrypt/live/car-service.fvds.ru/fullchain.pem"
@@ -15,7 +14,6 @@ const httpsServer = https.createServer({
 // Создание WebSocket-сервера, используя HTTPS-сервер
 const wss = new WebSocket.Server({
 	server: httpsServer,
-	perMessageDeflate: false, // Отключение сжатия сообщений, если это нужно
 	verifyClient: (info, done) => {
 		done(true) // Всегда принимать соединение
 	},
