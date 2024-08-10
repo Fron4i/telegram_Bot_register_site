@@ -1,6 +1,17 @@
+const fs = require("fs")
+const https = require("https")
 const WebSocket = require("ws")
 
-const wss = new WebSocket.Server({ port: 8081 })
+// Пути к вашим сертификатам
+const privateKey = fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/privkey.pem", "utf8")
+const certificate = fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/fullchain.pem", "utf8")
+
+const credentials = { key: privateKey, cert: certificate }
+
+// Создание HTTPS сервера
+const httpsServer = https.createServer(credentials)
+const wss = new WebSocket.Server({ server: httpsServer })
+
 const pendingResponses = new Map() // Хранение отложенных ответов
 
 wss.on("connection", (ws) => {
@@ -74,4 +85,7 @@ wss.on("connection", (ws) => {
 	})
 })
 
-console.log("WebSocket running on https://car-service.fvds.ru:8081")
+// Запуск HTTPS сервера на порту 8081
+httpsServer.listen(8081, () => {
+	console.log("WebSocket сервер запущен на wss://car-service.fvds.ru:8081")
+})
