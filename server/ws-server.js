@@ -74,4 +74,4 @@ wss.on("connection", (ws) => {
 	})
 })
 
-console.log("WebSocket running on http://109.172.115.176:8081")
+console.log("WebSocket running on https://car-service.fvds.ru:8081")
