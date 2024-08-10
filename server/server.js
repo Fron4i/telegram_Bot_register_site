@@ -2,7 +2,8 @@ const express = require("express")
 const cors = require("cors")
 const jwt = require("jsonwebtoken")
 const bodyParser = require("body-parser")
-
+const https = require("https")
+const fs = require("fs")
 const dotenv = require("dotenv")
 dotenv.config()
 
@@ -10,11 +11,12 @@ const { User, sequelize } = require("../bd/database")
 
 const app = express()
 const port = 3000
-
 const secretKey = process.env.JWT_SECRET_KEY
+
 app.use(cors())
 app.use(bodyParser.json())
 
+// Функция для форматирования даты и времени
 function formatDateTimeRU(date) {
 	const options = {
 		year: "numeric",
@@ -28,6 +30,7 @@ function formatDateTimeRU(date) {
 	return new Date(date).toLocaleString("ru-RU", options)
 }
 
+// Аутентификация токена
 function authenticateToken(req, res, next) {
 	const authHeader = req.headers["authorization"]
 	const token = authHeader && authHeader.split(" ")[1]
@@ -122,8 +125,17 @@ app.get("/api/get-token", async (req, res) => {
 	}
 })
 
-// Запуск сервера и вывод всех данных из БД
-app.listen(port, async () => {
+// Создание HTTPS-сервера с SSL-сертификатами
+const sslServer = https.createServer(
+	{
+		key: fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/privkey.pem"),
+		cert: fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/fullchain.pem"),
+	},
+	app
+)
+
+// Запуск HTTPS-сервера и вывод всех данных из БД
+sslServer.listen(port, async () => {
 	console.log(`API server running on https://car-service.fvds.ru:${port}`)
 	await displayAllUsers()
 })

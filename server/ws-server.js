@@ -2,20 +2,20 @@ const fs = require("fs")
 const https = require("https")
 const WebSocket = require("ws")
 
-// Пути к вашим сертификатам
-const privateKey = fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/privkey.pem", "utf8")
-const certificate = fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/fullchain.pem", "utf8")
+// Чтение сертификатов
+const server = https.createServer({
+	cert: fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/fullchain.pem"),
+	key: fs.readFileSync("/etc/letsencrypt/live/car-service.fvds.ru/privkey.pem"),
+})
 
-const credentials = { key: privateKey, cert: certificate }
+// Создание WebSocket-сервера, используя HTTPS-сервер
+const wss = new WebSocket.Server({ server })
 
-// Создание HTTPS сервера
-const httpsServer = https.createServer(credentials)
-const wss = new WebSocket.Server({ server: httpsServer })
-
-const pendingResponses = new Map() // Хранение отложенных ответов
+// Хранилище отложенных ответов
+const pendingResponses = new Map()
 
 wss.on("connection", (ws) => {
-	//console.log("Новый клиент подключен")
+	console.log("Новый клиент подключен")
 
 	ws.on("message", (message) => {
 		const messageString = message.toString() // Преобразование буфера в строку
@@ -81,11 +81,11 @@ wss.on("connection", (ws) => {
 	})
 
 	ws.on("close", () => {
-		//console.log("Клиент отключился")
+		console.log("Клиент отключился")
 	})
 })
 
-// Запуск HTTPS сервера на порту 8081
-httpsServer.listen(8081, () => {
+// Запуск HTTPS-сервера и WebSocket-сервера на одном порту
+server.listen(8081, () => {
 	console.log("WebSocket сервер запущен на wss://car-service.fvds.ru:8081")
 })
