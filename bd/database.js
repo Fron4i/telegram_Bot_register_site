@@ -48,7 +48,7 @@ const User = sequelize.define(
 
 // Синхронизация базы данных (создание таблицы, если ее нет, и обновление структуры)
 sequelize
-	.sync({ alter: true }) // alter: true для изменения существующей таблицы
+	.sync({ alter: true, logging: console.log }) // Включаем логирование запросов к базе данных
 	.catch((error) => {
 		console.error("Error creating/updating database:", error)
 	})

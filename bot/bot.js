@@ -11,13 +11,13 @@ const startTokenMap = new Map()
 // Обработка команды /start с параметрами
 bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 	const chatId = msg.chat.id
-	const startToken = match[1] // Извлекаем startToken из параметров команды
+	const startToken = match[1]
+	console.log(`Received start command from chat ${chatId} with token: ${startToken}`)
 
 	if (startToken) {
 		startTokenMap.set(chatId, startToken)
 	}
 
-	// Запрашиваем контакт пользователя
 	bot.sendMessage(chatId, "Поделитесь своим контактом для регистрации.", {
 		reply_markup: {
 			one_time_keyboard: true,
@@ -26,29 +26,27 @@ bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 	})
 })
 
-// Обработка контакта пользователя
 bot.on("contact", (msg) => {
 	const chatId = msg.chat.id
 	const contact = msg.contact
-	const startToken = startTokenMap.get(chatId) // Получаем startToken для текущего пользователя
+	const startToken = startTokenMap.get(chatId)
+	console.log(`Received contact from chat ${chatId}:`, contact)
 
 	if (!contact || !startToken) {
+		console.log("Contact or startToken is missing")
 		bot.sendMessage(chatId, "Не удалось получить контакт или стартовый токен. Попробуйте снова.")
 		return
 	}
 
-	// Регистрация и отправка данных на основной сервер
 	axios
 		.post("https://car-service.fvds.ru/api/register", {
 			id: contact.user_id,
 			first_name: contact.first_name,
 			last_name: contact.last_name,
-			startToken: startToken, // Отправляем startToken вместе с регистрацией
+			startToken: startToken,
 		})
 		.then((response) => {
-			const { token } = response.data
-
-			// После успешной регистрации
+			console.log("User registered via bot:", response.data)
 			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
 				reply_markup: {
 					inline_keyboard: [
@@ -61,12 +59,10 @@ bot.on("contact", (msg) => {
 					],
 				},
 			})
-
-			// Удаляем startToken после использования
 			startTokenMap.delete(chatId)
 		})
 		.catch((error) => {
-			console.error("Ошибка при регистрации пользователя:", error)
+			console.error("Ошибка при регистрации пользователя через бот:", error)
 			bot.sendMessage(chatId, "Произошла ошибка при регистрации. Попробуйте позже.")
 		})
 })

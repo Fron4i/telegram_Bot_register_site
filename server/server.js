@@ -53,12 +53,16 @@ function authenticateToken(req, res, next) {
 // Регистрация пользователя через бота
 app.post("/api/register", async (req, res) => {
 	const { id, first_name, last_name, startToken } = req.body
+	console.log("Received registration request:", req.body) // Логируем полученные данные
+
 	if (!id || !startToken) {
+		console.log("Missing required parameters:", { id, startToken }) // Логируем, если не хватает параметров
 		return res.status(400).json({ success: false, message: "Missing required parameters" })
 	}
 
 	// Аннулируем предыдущие токены пользователя
 	await User.update({ isValid: false }, { where: { id } })
+	console.log(`Invalidated old tokens for user: ${id}`) // Логируем аннулирование токенов
 
 	// Создание или обновление пользователя в базе данных
 	const [user, created] = await User.upsert({
@@ -69,11 +73,12 @@ app.post("/api/register", async (req, res) => {
 		isValid: true, // Новый токен будет валиден
 	})
 
-	console.log("User registered successfully:", user.toJSON())
+	console.log("User registered successfully:", user.toJSON()) // Логируем успешную регистрацию
 
 	// Сохранение стартового токена
 	user.startToken = startToken
 	await user.save()
+	console.log("Start token saved:", startToken) // Логируем сохранение стартового токена
 
 	const userJson = user.toJSON()
 	userJson.createdAt = formatDateTimeRU(userJson.createdAt)
@@ -85,15 +90,18 @@ app.post("/api/register", async (req, res) => {
 // Проверка стартового токена и генерация основного токена
 app.get("/api/check-start-token", async (req, res) => {
 	const { token } = req.query
+	console.log("Checking start token:", token) // Логируем стартовый токен
 
 	if (!token) {
+		console.log("Start token is missing") // Логируем отсутствие стартового токена
 		return res.status(400).json({ success: false, message: "Start token is missing" })
 	}
 
 	try {
 		const user = await User.findOne({ where: { startToken: token } })
-
 		if (user) {
+			console.log("User found with start token:", user.toJSON()) // Логируем успешный поиск пользователя
+
 			// Генерация нового authToken
 			const authToken = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
 			user.token = authToken
@@ -101,8 +109,10 @@ app.get("/api/check-start-token", async (req, res) => {
 			user.startToken = null // Обнуление стартового токена после использования
 			await user.save()
 
+			console.log("Auth token generated and user updated:", authToken) // Логируем генерацию authToken и обновление пользователя
 			res.json({ success: true, token: authToken })
 		} else {
+			console.log("Invalid start token") // Логируем ошибку с токеном
 			res.status(404).json({ success: false, message: "Invalid start token" })
 		}
 	} catch (error) {

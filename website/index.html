@@ -30,18 +30,19 @@
 			// Функция для выполнения запросов к API
 			async function fetchData(token, isAuthToken = true) {
 				try {
-					// Определяем URL и заголовки запроса в зависимости от типа токена
 					const url = isAuthToken ? "https://car-service.fvds.ru/api/status" : `https://car-service.fvds.ru/api/check-start-token?token=${token}`
-
 					const headers = isAuthToken ? { Authorization: `Bearer ${token}` } : {}
+					console.log(`Fetching data from ${url} with headers:`, headers) // Логируем запрос
 
 					const response = await fetch(url, { method: "GET", headers })
+					console.log("Received response:", response) // Логируем ответ
 
 					if (!response.ok) {
 						throw new Error(`HTTP error! status: ${response.status}`)
 					}
 
 					const data = await response.json()
+					console.log("Received ", data) // Логируем полученные данные
 					return data
 				} catch (error) {
 					console.error("Ошибка при запросе данных:", error)
