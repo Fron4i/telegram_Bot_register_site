@@ -26,16 +26,29 @@ bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 		},
 	})
 })
+const messageQueue = []
 
-// Обработка контакта
+ws.on("open", () => {
+	console.log("Подключено к серверу WebSocket")
+
+	// Отправляем все сообщения из очереди
+	while (messageQueue.length > 0) {
+		const message = messageQueue.shift()
+
+		console.log("Запросы в очереди ", message)
+
+		ws.send(message)
+	}
+})
+
+ws.on("error", (error) => {
+	console.error("Ошибка WebSocket соединения:", error)
+})
+
 bot.on("contact", (msg) => {
 	const chatId = msg.chat.id
 	const contact = msg.contact
 	const startToken = startTokenMap.get(chatId) // Получаем startToken для текущего пользователя
-
-	ws.onopen = () => {
-		console.log("WebSocket соединение установлено 1")
-	}
 
 	axios
 		.post("https://car-service.fvds.ru/api/register", {
@@ -45,21 +58,21 @@ bot.on("contact", (msg) => {
 		})
 		.then((response) => {
 			const { token } = response.data
-			ws.onopen = () => {
-				console.log("WebSocket соединение установлено 2")
+
+			const message = JSON.stringify({
+				type: "TOKEN",
+				token: token,
+				startToken: startToken,
+				userId: contact.user_id,
+			})
+
+			// Если WebSocket соединение не активно, добавляем сообщение в очередь
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(message)
+			} else {
+				console.log("WebSocket соединение не активно, добавляем сообщение в очередь")
+				messageQueue.push(message)
 			}
-
-			// Отправляем токен через WebSocket
-			console.log("Отправил информацию из бота на ВебСокет: ", token, startToken, contact.user_id)
-
-			ws.send(
-				JSON.stringify({
-					type: "TOKEN",
-					token: token,
-					startToken: startToken, // Передаем startToken
-					userId: contact.user_id,
-				})
-			)
 
 			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
 				reply_markup: {
@@ -81,12 +94,4 @@ bot.on("contact", (msg) => {
 			console.error("Ошибка при регистрации пользователя:", error)
 			bot.sendMessage(chatId, "Произошла ошибка при регистрации. Попробуйте позже.")
 		})
-})
-
-ws.on("error", (error) => {
-	console.error("Ошибка WebSocket соединения:", error)
-})
-
-ws.on("open", () => {
-	console.log("Подключено к серверу WebSocket")
 })
