@@ -29,6 +29,10 @@ const User = sequelize.define(
 		tokenExpires: {
 			type: DataTypes.DATE,
 		},
+		isValid: {
+			type: DataTypes.BOOLEAN,
+			defaultValue: true, // По умолчанию токен валиден
+		},
 	},
 	{
 		tableName: "Users", // Указываем имя таблицы в базе данных

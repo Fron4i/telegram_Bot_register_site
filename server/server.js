@@ -36,8 +36,15 @@ function authenticateToken(req, res, next) {
 	const token = authHeader && authHeader.split(" ")[1]
 	if (token == null) return res.sendStatus(401)
 
-	jwt.verify(token, secretKey, (err, user) => {
+	jwt.verify(token, secretKey, async (err, user) => {
 		if (err) return res.sendStatus(403)
+
+		// Проверка, что токен валиден
+		const dbUser = await User.findByPk(user.userId)
+		if (!dbUser || dbUser.token !== token || !dbUser.isValid) {
+			return res.sendStatus(403)
+		}
+
 		req.userId = user.userId
 		next()
 	})
@@ -67,11 +74,15 @@ app.post("/api/register", async (req, res) => {
 		return res.status(400).json({ success: false, message: "Missing Telegram user ID" })
 	}
 
+	// Аннулируем предыдущие токены пользователя
+	await User.update({ isValid: false }, { where: { id } })
+
 	// Создание или обновление пользователя в базе данных
 	const [user, created] = await User.upsert({
 		id,
 		first_name,
 		last_name,
+		isValid: true, // Новый токен валиден
 	})
 
 	console.log("User registered successfully:", user.toJSON())
@@ -115,7 +126,12 @@ app.get("/api/get-token", async (req, res) => {
 			const newToken = jwt.sign({ userId: userId }, secretKey, { expiresIn: "6h" })
 			user.token = newToken
 			user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+			user.isValid = true // Новый токен валиден
 			await user.save()
+
+			// Аннулируем все предыдущие токены пользователя
+			await User.update({ isValid: false }, { where: { id: userId, token: { [Sequelize.Op.ne]: newToken } } })
+
 			res.json({ token: newToken })
 		} else {
 			res.json({ token: user.token })
