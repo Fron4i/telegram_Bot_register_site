@@ -152,7 +152,18 @@
 						document.getElementById("userId").innerText = data.user.id
 						localStorage.setItem(LOCAL_STORAGE_KEY.USER_ID, data.user.id)
 					} else {
-						console.log("Пользователь не найден")
+						localStorage.removeItem(LOCAL_STORAGE_KEY.AUTH_TOKEN)
+						localStorage.removeItem(LOCAL_STORAGE_KEY.USER_ID)
+
+						const startToken = localStorage.getItem(LOCAL_STORAGE_KEY.START_TOKEN)
+						if (startToken) {
+							sendStartToken(startToken)
+						} else {
+							const newStartToken = generateStartToken()
+							localStorage.setItem(LOCAL_STORAGE_KEY.START_TOKEN, newStartToken)
+							sendStartToken(newStartToken)
+						}
+						console.log("Пользователь не найден, создаем startToken", startToken)
 					}
 				} catch (error) {
 					console.error("Ошибка при проверке статуса пользователя:", error)
