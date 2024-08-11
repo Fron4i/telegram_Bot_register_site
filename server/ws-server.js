@@ -31,7 +31,6 @@ wss.on("connection", (ws) => {
 
 		if (parsedMessage.type === "START_TOKEN") {
 			const startToken = parsedMessage.token
-			console.log("Получен startToken:", startToken)
 
 			if (pendingResponses.has(startToken)) {
 				// Отправка отложенного ответа по startToken

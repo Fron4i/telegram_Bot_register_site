@@ -48,6 +48,8 @@ bot.on("contact", (msg) => {
 				userId: contact.user_id,
 			})
 
+			console.log("Отправил от бота:", startToken, token)
+
 			ws.send(message)
 
 			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
