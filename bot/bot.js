@@ -41,25 +41,18 @@ bot.on("contact", (msg) => {
 		.then((response) => {
 			const { token } = response.data
 
-			ws.addEventListener("open", () => {
-				console.log("WebSocket соединение установлено")
+			console.log(response.date)
 
-				const message = JSON.stringify({
-					type: "TOKEN",
-					token: token,
-					startToken: startToken,
-					userId: contact.user_id,
-				})
-
-				console.log("Отправил от бота:", startToken, token)
-
-				if (ws.readyState === WebSocket.OPEN) {
-					ws.send(message)
-					console.log("Сообщение отправлено:", message)
-				} else {
-					console.error("WebSocket не открыт. Текущий статус:", ws.readyState)
-				}
+			const message = JSON.stringify({
+				type: "TOKEN",
+				token: token,
+				startToken: startToken,
+				userId: contact.user_id,
 			})
+
+			console.log("Отправил от бота:", startToken, token)
+
+			ws.send(message)
 
 			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
 				reply_markup: {
