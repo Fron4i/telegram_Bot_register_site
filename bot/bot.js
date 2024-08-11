@@ -26,24 +26,6 @@ bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 		},
 	})
 })
-const messageQueue = []
-
-ws.on("open", () => {
-	console.log("Подключено к серверу WebSocket")
-
-	// Отправляем все сообщения из очереди
-	while (messageQueue.length > 0) {
-		const message = messageQueue.shift()
-
-		console.log("Запросы в очереди ", message)
-
-		ws.send(message)
-	}
-})
-
-ws.on("error", (error) => {
-	console.error("Ошибка WebSocket соединения:", error)
-})
 
 bot.on("contact", (msg) => {
 	const chatId = msg.chat.id
@@ -66,13 +48,7 @@ bot.on("contact", (msg) => {
 				userId: contact.user_id,
 			})
 
-			// Если WebSocket соединение не активно, добавляем сообщение в очередь
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(message)
-			} else {
-				console.log("WebSocket соединение не активно, добавляем сообщение в очередь")
-				messageQueue.push(message)
-			}
+			ws.send(message)
 
 			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
 				reply_markup: {

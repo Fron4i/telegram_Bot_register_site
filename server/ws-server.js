@@ -40,7 +40,7 @@ wss.on("connection", (ws) => {
 				console.log("Отправка отложенного ответа для startToken:", startToken)
 
 				// Удаление отложенного ответа после отправки
-				//pendingResponses.delete(startToken)
+				pendingResponses.delete(startToken)
 			} else {
 				console.log("Нет отложенных ответов для startToken:", startToken)
 			}
