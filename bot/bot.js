@@ -14,6 +14,8 @@ bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 	const chatId = msg.chat.id
 	const startToken = match[1] // Извлекаем startToken из параметров команды
 
+	console.log("Получил startToken на боте: ", startToken)
+
 	if (startToken) {
 		startTokenMap.set(chatId, startToken)
 	}
@@ -43,6 +45,8 @@ bot.on("contact", (msg) => {
 			const { token } = response.data
 
 			// Отправляем токен через WebSocket
+			console.log("Отправил информацию из бота на ВебСокет: ", token, startToken, contact.user_id)
+
 			ws.send(
 				JSON.stringify({
 					type: "TOKEN",
