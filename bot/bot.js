@@ -14,8 +14,6 @@ bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 	const chatId = msg.chat.id
 	const startToken = match[1] // Извлекаем startToken из параметров команды
 
-	console.log("Получил startToken на боте: ", startToken)
-
 	if (startToken) {
 		startTokenMap.set(chatId, startToken)
 	}
@@ -35,6 +33,10 @@ bot.on("contact", (msg) => {
 	const contact = msg.contact
 	const startToken = startTokenMap.get(chatId) // Получаем startToken для текущего пользователя
 
+	ws.onopen = () => {
+		console.log("WebSocket соединение установлено 1")
+	}
+
 	axios
 		.post("https://car-service.fvds.ru/api/register", {
 			id: contact.user_id,
@@ -43,6 +45,9 @@ bot.on("contact", (msg) => {
 		})
 		.then((response) => {
 			const { token } = response.data
+			ws.onopen = () => {
+				console.log("WebSocket соединение установлено 2")
+			}
 
 			// Отправляем токен через WebSocket
 			console.log("Отправил информацию из бота на ВебСокет: ", token, startToken, contact.user_id)

@@ -23,8 +23,6 @@ const wss = new WebSocket.Server({
 const pendingResponses = new Map()
 
 wss.on("connection", (ws) => {
-	console.log("Новый клиент подключен")
-
 	ws.on("message", (message) => {
 		const messageString = message.toString() // Преобразование буфера в строку
 		const parsedMessage = JSON.parse(messageString) // Парсинг JSON строки
