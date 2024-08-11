@@ -104,9 +104,9 @@ app.get("/api/check-start-token", async (req, res) => {
 			console.log("User found with start token:", user.toJSON()) // Логируем успешный поиск пользователя
 
 			// Генерация нового authToken
-			const authToken = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
+			const authToken = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "12h" })
 			user.token = authToken
-			user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+			user.tokenExpires = new Date(Date.now() + 12 * 60 * 60 * 1000)
 			user.startToken = null // Обнуление стартового токена после использования
 			await user.save()
 
