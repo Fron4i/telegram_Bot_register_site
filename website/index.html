@@ -36,11 +36,14 @@
 					const authToken = localStorage.getItem(LOCAL_STORAGE_KEY.AUTH_TOKEN)
 					const userId = localStorage.getItem(LOCAL_STORAGE_KEY.USER_ID)
 
-					if (!isTokenExpired(authToken)) {
+					if (authToken && !isTokenExpired(authToken)) {
 						checkUserStatus(authToken)
-					} else if (userId) {
+					} else if (authToken && userId && isTokenExpired(authToken)) {
 						sendUserId(userId)
-					} else {
+					} else if ((!authToken && !userId) || !authToken || !userId) {
+						localStorage.removeItem(LOCAL_STORAGE_KEY.AUTH_TOKEN)
+						localStorage.removeItem(LOCAL_STORAGE_KEY.USER_ID)
+
 						const startToken = localStorage.getItem(LOCAL_STORAGE_KEY.START_TOKEN)
 						if (startToken) {
 							sendStartToken(startToken)
