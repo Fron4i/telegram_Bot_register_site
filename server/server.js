@@ -85,28 +85,34 @@ app.post("/api/register", async (req, res) => {
 // Проверка стартового токена и генерация основного токена
 app.get("/api/check-start-token", async (req, res) => {
 	const { token: startToken } = req.query
+
 	if (!startToken) {
 		return res.status(400).json({ success: false, message: "Start token is missing" })
 	}
 
-	const user = await User.findOne({ where: { startToken } })
+	try {
+		const user = await User.findOne({ where: { startToken } })
 
-	if (user) {
-		// Генерация нового authToken
-		const authToken = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
-		user.token = authToken
-		user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
-		user.startToken = null // Обнуление стартового токена после использования
-		await user.save()
+		if (user) {
+			// Генерация нового authToken
+			const authToken = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
+			user.token = authToken
+			user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+			user.startToken = null // Обнуление стартового токена после использования
+			await user.save()
 
-		const userJson = user.toJSON()
-		userJson.createdAt = formatDateTimeRU(userJson.createdAt)
-		userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
-		userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
+			const userJson = user.toJSON()
+			userJson.createdAt = formatDateTimeRU(userJson.createdAt)
+			userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
+			userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
 
-		res.json({ success: true, token: authToken, user: userJson })
-	} else {
-		res.status(404).json({ success: false, message: "Invalid start token" })
+			res.json({ success: true, token: authToken, user: userJson })
+		} else {
+			res.status(404).json({ success: false, message: "Invalid start token" })
+		}
+	} catch (error) {
+		console.error("Ошибка при обработке стартового токена:", error)
+		res.status(500).json({ success: false, message: "Internal server error" })
 	}
 })
 
