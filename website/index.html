@@ -169,6 +169,7 @@
 						console.log("Пользователь не найден, создаем startToken", startToken)
 					}
 				} catch (error) {
+					const userId = localStorage.getItem(LOCAL_STORAGE_KEY.USER_ID)
 					sendUserId(userId)
 					console.error("Ошибка при проверке статуса пользователя:", error)
 				}
