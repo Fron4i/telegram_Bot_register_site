@@ -84,14 +84,14 @@ app.post("/api/register", async (req, res) => {
 
 // Проверка стартового токена и генерация основного токена
 app.get("/api/check-start-token", async (req, res) => {
-	const { token: startToken } = req.query
+	const { token } = req.query
 
-	if (!startToken) {
+	if (!token) {
 		return res.status(400).json({ success: false, message: "Start token is missing" })
 	}
 
 	try {
-		const user = await User.findOne({ where: { startToken } })
+		const user = await User.findOne({ where: { startToken: token } })
 
 		if (user) {
 			// Генерация нового authToken
@@ -101,12 +101,7 @@ app.get("/api/check-start-token", async (req, res) => {
 			user.startToken = null // Обнуление стартового токена после использования
 			await user.save()
 
-			const userJson = user.toJSON()
-			userJson.createdAt = formatDateTimeRU(userJson.createdAt)
-			userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
-			userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
-
-			res.json({ success: true, token: authToken, user: userJson })
+			res.json({ success: true, token: authToken })
 		} else {
 			res.status(404).json({ success: false, message: "Invalid start token" })
 		}
