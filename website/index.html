@@ -101,6 +101,7 @@
 				} else {
 					// Если authToken невалиден, удаляем токен и userId, и запускаем процесс заново
 					localStorage.removeItem(LOCAL_STORAGE_KEY.AUTH_TOKEN)
+					localStorage.removeItem(LOCAL_STORAGE_KEY.USER_ID)
 					startProcess()
 				}
 			}
@@ -119,6 +120,9 @@
 					const newToken = await refreshAuthToken(userId)
 					if (newToken) {
 						await checkUserStatus(newToken)
+					} else {
+						localStorage.removeItem(LOCAL_STORAGE_KEY.USER_ID)
+						startProcess()
 					}
 				}
 				// Если нет ни authToken, ни userId, работаем со стартовым токеном

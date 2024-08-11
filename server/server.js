@@ -53,38 +53,39 @@ function authenticateToken(req, res, next) {
 // Регистрация пользователя через бота
 app.post("/api/register", async (req, res) => {
 	const { id, first_name, last_name, startToken } = req.body
-	console.log("Received registration request:", req.body) // Логируем полученные данные
+	console.log("Received registration request:", req.body)
 
 	if (!id || !startToken) {
-		console.log("Missing required parameters:", { id, startToken }) // Логируем, если не хватает параметров
+		console.log("Missing required parameters:", { id, startToken })
 		return res.status(400).json({ success: false, message: "Missing required parameters" })
 	}
 
-	// Аннулируем предыдущие токены пользователя
-	await User.update({ isValid: false }, { where: { id } })
-	console.log(`Invalidated old tokens for user: ${id}`) // Логируем аннулирование токенов
+	try {
+		// Invalidate all previous tokens for this user
+		await User.update({ isValid: false }, { where: { id } })
+		console.log(`Invalidated old tokens for user: ${id}`)
 
-	// Создание или обновление пользователя в базе данных
-	const [user, created] = await User.upsert({
-		id,
-		first_name,
-		last_name,
-		token: null, // Изначально токен отсутствует
-		isValid: true, // Новый токен будет валиден
-	})
+		// Create or update user and set the new session as valid
+		const [user, created] = await User.upsert({
+			id,
+			first_name,
+			last_name,
+			token: null, // Reset token initially
+			isValid: true, // Set new session as valid
+			startToken, // Save new start token directly
+		})
 
-	console.log("User registered successfully:", user.toJSON()) // Логируем успешную регистрацию
+		console.log("User registered successfully:", user.toJSON())
 
-	// Сохранение стартового токена
-	user.startToken = startToken
-	await user.save()
-	console.log("Start token saved:", startToken) // Логируем сохранение стартового токена
+		const userJson = user.toJSON()
+		userJson.createdAt = formatDateTimeRU(userJson.createdAt)
+		userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
 
-	const userJson = user.toJSON()
-	userJson.createdAt = formatDateTimeRU(userJson.createdAt)
-	userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
-
-	res.json({ success: true, user: userJson })
+		res.json({ success: true, user: userJson })
+	} catch (error) {
+		console.error("Error during registration:", error)
+		res.status(500).json({ success: false, message: "Internal server error" })
+	}
 })
 
 // Проверка стартового токена и генерация основного токена
