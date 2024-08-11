@@ -23,12 +23,19 @@ const User = sequelize.define(
 			type: DataTypes.STRING,
 			allowNull: false,
 		},
+		// Поле для хранения основного токена (authToken)
 		token: {
 			type: DataTypes.STRING,
 		},
+		// Поле для хранения стартового токена
+		startToken: {
+			type: DataTypes.STRING,
+		},
+		// Поле для хранения даты истечения основного токена
 		tokenExpires: {
 			type: DataTypes.DATE,
 		},
+		// Поле для указания, является ли основной токен валидным
 		isValid: {
 			type: DataTypes.BOOLEAN,
 			defaultValue: true, // По умолчанию токен валиден

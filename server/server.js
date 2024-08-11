@@ -50,28 +50,11 @@ function authenticateToken(req, res, next) {
 	})
 }
 
-// Функция для вывода всех данных из базы данных
-async function displayAllUsers() {
-	try {
-		const users = await User.findAll() // Получение всех пользователей
-		console.log("All registered users:")
-		users.forEach((user) => {
-			const userJson = user.toJSON()
-			userJson.createdAt = formatDateTimeRU(userJson.createdAt)
-			userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
-			userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
-			console.log(userJson) // Вывод каждого пользователя
-		})
-	} catch (error) {
-		console.error("Error retrieving users:", error)
-	}
-}
-
-// Регистрация пользователя
+// Регистрация пользователя через бота
 app.post("/api/register", async (req, res) => {
-	const { id, first_name, last_name } = req.body
-	if (!id) {
-		return res.status(400).json({ success: false, message: "Missing Telegram user ID" })
+	const { id, first_name, last_name, startToken } = req.body
+	if (!id || !startToken) {
+		return res.status(400).json({ success: false, message: "Missing required parameters" })
 	}
 
 	// Аннулируем предыдущие токены пользователя
@@ -82,65 +65,48 @@ app.post("/api/register", async (req, res) => {
 		id,
 		first_name,
 		last_name,
-		isValid: true, // Новый токен валиден
+		token: null, // Изначально токен отсутствует
+		isValid: true, // Новый токен будет валиден
 	})
 
 	console.log("User registered successfully:", user.toJSON())
 
-	// Создание нового токена
-	const token = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
-	user.token = token
-	user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+	// Сохранение стартового токена
+	user.startToken = startToken
 	await user.save()
 
 	const userJson = user.toJSON()
 	userJson.createdAt = formatDateTimeRU(userJson.createdAt)
 	userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
-	userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
 
-	res.json({ success: true, token, user: userJson })
+	res.json({ success: true, user: userJson })
 })
 
-const pendingResponses = new Map()
-
-// Обработка POST запросов
-app.post("/api/message", (req, res) => {
-	const { type, token, startToken, userId } = req.body
-
-	console.log("Получено POST сообщение =>", { type, token, startToken, userId })
-
-	if (type === "TOKEN") {
-		// Сохранение сообщения в Map
-		pendingResponses.set(startToken || userId, {
-			type: "TOKEN",
-			token: token,
-			userId: userId,
-		})
-		console.log("Сообщение сохранено для startToken или userId:", startToken || userId)
-
-		// Отправка подтверждения обратно
-		res.send("Сообщение получено и сохранено")
-	} else {
-		res.status(400).send("Неверный тип сообщения")
-	}
-})
-
-// Обработка POST запросов
-app.get("/api/message-get", (req, res) => {
-	const { startToken, userId } = req.query
-
-	if (!startToken && !userId) {
-		return res.status(400).send("Не указан startToken или userId")
+// Проверка стартового токена и генерация основного токена
+app.get("/api/check-start-token", async (req, res) => {
+	const { token: startToken } = req.query
+	if (!startToken) {
+		return res.status(400).json({ success: false, message: "Start token is missing" })
 	}
 
-	const key = startToken || userId
-	const response = pendingResponses.get(key)
+	const user = await User.findOne({ where: { startToken } })
 
-	if (response) {
-		// Отправка сохраненного сообщения обратно
-		res.json(response)
+	if (user) {
+		// Генерация нового authToken
+		const authToken = jwt.sign({ userId: user.id }, secretKey, { expiresIn: "6h" })
+		user.token = authToken
+		user.tokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000)
+		user.startToken = null // Обнуление стартового токена после использования
+		await user.save()
+
+		const userJson = user.toJSON()
+		userJson.createdAt = formatDateTimeRU(userJson.createdAt)
+		userJson.updatedAt = formatDateTimeRU(userJson.updatedAt)
+		userJson.tokenExpires = formatDateTimeRU(userJson.tokenExpires)
+
+		res.json({ success: true, token: authToken, user: userJson })
 	} else {
-		res.status(404).send("Сообщение не найдено")
+		res.status(404).json({ success: false, message: "Invalid start token" })
 	}
 })
 
@@ -159,7 +125,7 @@ app.get("/api/status", authenticateToken, async (req, res) => {
 	}
 })
 
-// Получение токена по userId
+// Получение нового authToken по userId
 app.get("/api/get-token", async (req, res) => {
 	const userId = req.query.userId
 	const user = await User.findByPk(userId)
@@ -193,8 +159,7 @@ const sslServer = https.createServer(
 	app
 )
 
-// Запуск HTTPS-сервера и вывод всех данных из БД
+// Запуск HTTPS-сервера
 sslServer.listen(port, async () => {
 	console.log(`API server running on https://car-service.fvds.ru/api/`)
-	await displayAllUsers()
 })

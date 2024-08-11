@@ -1,14 +1,12 @@
 const TelegramBot = require("node-telegram-bot-api")
 const axios = require("axios")
-const WebSocket = require("ws")
 
+// Создание бота
 const token = "7252583854:AAEMmFsQKr9LoQ7fVC3fiNLO60WWjIO_irE"
 const bot = new TelegramBot(token, { polling: true })
-const ws = new WebSocket("wss://car-service.fvds.ru/ws/")
 
-// Хранилище для startToken
+// Хранилище для стартовых токенов
 const startTokenMap = new Map()
-const pendingMessages = new Map() // Хранилище для отслеживания отправленных сообщений
 
 // Обработка команды /start с параметрами
 bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
@@ -28,50 +26,44 @@ bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
 	})
 })
 
+// Обработка контакта пользователя
 bot.on("contact", (msg) => {
 	const chatId = msg.chat.id
 	const contact = msg.contact
 	const startToken = startTokenMap.get(chatId) // Получаем startToken для текущего пользователя
 
+	if (!contact || !startToken) {
+		bot.sendMessage(chatId, "Не удалось получить контакт или стартовый токен. Попробуйте снова.")
+		return
+	}
+
+	// Регистрация и отправка данных на основной сервер
 	axios
 		.post("https://car-service.fvds.ru/api/register", {
 			id: contact.user_id,
 			first_name: contact.first_name,
 			last_name: contact.last_name,
+			startToken: startToken, // Отправляем startToken вместе с регистрацией
 		})
 		.then((response) => {
 			const { token } = response.data
 
-			axios
-				.post("https://car-service.fvds.ru/api/message", {
-					type: "TOKEN",
-					token: token,
-					startToken: startToken,
-					userId: contact.user_id,
-				})
-				.then(() => {
-					console.log("Сообщение отправлено на основной сервер")
+			// После успешной регистрации
+			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
+				reply_markup: {
+					inline_keyboard: [
+						[
+							{
+								text: "Перейти на сайт",
+								url: "https://car-service.fvds.ru",
+							},
+						],
+					],
+				},
+			})
 
-					bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
-						reply_markup: {
-							inline_keyboard: [
-								[
-									{
-										text: "Перейти на сайт",
-										url: "https://car-service.fvds.ru",
-									},
-								],
-							],
-						},
-					})
-
-					// Удаляем startToken после использования
-					startTokenMap.delete(chatId)
-				})
-				.catch((error) => {
-					console.error("Ошибка при отправке POST сообщения на основной сервер:", error)
-					bot.sendMessage(chatId, "Произошла ошибка при регистрации. Попробуйте позже.")
-				})
+			// Удаляем startToken после использования
+			startTokenMap.delete(chatId)
 		})
 		.catch((error) => {
 			console.error("Ошибка при регистрации пользователя:", error)
