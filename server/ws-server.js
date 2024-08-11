@@ -40,7 +40,7 @@ wss.on("connection", (ws) => {
 				console.log("Отправка отложенного ответа для startToken:", startToken)
 
 				// Удаление отложенного ответа после отправки
-				pendingResponses.delete(startToken)
+				//pendingResponses.delete(startToken)
 			} else {
 				console.log("Нет отложенных ответов для startToken:", startToken)
 			}
@@ -68,26 +68,7 @@ wss.on("connection", (ws) => {
 				})
 				console.log("Токен сохранен для userId:", userId)
 			}
-		} else if (parsedMessage.type === "USER_ID") {
-			const userId = parsedMessage.userId
-			console.log("Получен userId:", userId)
-
-			if (pendingResponses.has(userId)) {
-				// Отправка отложенного ответа по userId
-				const response = pendingResponses.get(userId)
-				ws.send(JSON.stringify(response))
-				console.log("Отправка отложенного ответа для userId:", userId)
-
-				// Удаление отложенного ответа после отправки
-				pendingResponses.delete(userId)
-			} else {
-				console.log("Нет отложенных ответов для userId:", userId)
-			}
 		}
-	})
-
-	ws.on("close", () => {
-		console.log("Клиент отключился")
 	})
 })
 
