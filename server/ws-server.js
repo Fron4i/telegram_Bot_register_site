@@ -32,12 +32,27 @@ const pendingResponses = new Map() // Хранилище для отложенн
 wss.on("connection", (ws) => {
 	console.log("WebSocket клиент подключен")
 
-	// Отправка всех отложенных сообщений, если клиент подключен
-	pendingResponses.forEach((message, key) => {
-		ws.send(JSON.stringify(message))
-	})
+	// Функция для обработки отложенных сообщений
+	async function handlePendingMessages(startToken) {
+		try {
+			// Получение сообщений из основного сервера
+			const response = await axios.get("http://localhost:3000/api/message-get", {
+				params: { startToken },
+			})
 
-	ws.on("message", (message) => {
+			if (response.status === 200) {
+				const data = response.data
+				ws.send(JSON.stringify(data))
+				console.log("Отправлено отложенное сообщение для startToken:", startToken)
+			} else {
+				console.log("Нет отложенных сообщений для startToken:", startToken)
+			}
+		} catch (error) {
+			console.error("Ошибка при получении отложенного сообщения:", error)
+		}
+	}
+
+	ws.on("message", async (message) => {
 		const messageString = message.toString() // Преобразование буфера в строку
 		const parsedMessage = JSON.parse(messageString) // Парсинг JSON строки
 
@@ -52,6 +67,7 @@ wss.on("connection", (ws) => {
 				ws.send(JSON.stringify(response))
 				console.log("Отправка отложенного ответа для startToken:", startToken)
 
+				await handlePendingMessages(startToken)
 				// Удаление отложенного ответа после отправки
 				pendingResponses.delete(startToken)
 			} else {
@@ -90,28 +106,6 @@ wss.on("connection", (ws) => {
 	ws.on("close", () => {
 		console.log("WebSocket клиент отключен")
 	})
-})
-
-// Обработка POST запросов
-app.post("/api/message", (req, res) => {
-	const { type, token, startToken, userId } = req.body
-
-	console.log("Получено POST сообщение =>", { type, token, startToken, userId })
-
-	if (type === "TOKEN") {
-		// Сохранение сообщения в Map
-		pendingResponses.set(startToken || userId, {
-			type: "TOKEN",
-			token: token,
-			userId: userId,
-		})
-		console.log("Сообщение сохранено для startToken или userId:", startToken || userId)
-
-		// Отправка подтверждения обратно
-		res.send("Сообщение получено и сохранено")
-	} else {
-		res.status(400).send("Неверный тип сообщения")
-	}
 })
 
 // Запуск HTTPS-сервера и WebSocket-сервера на одном порту

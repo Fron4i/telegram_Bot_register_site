@@ -101,6 +101,49 @@ app.post("/api/register", async (req, res) => {
 	res.json({ success: true, token, user: userJson })
 })
 
+const pendingResponses = new Map()
+
+// Обработка POST запросов
+app.post("/api/message", (req, res) => {
+	const { type, token, startToken, userId } = req.body
+
+	console.log("Получено POST сообщение =>", { type, token, startToken, userId })
+
+	if (type === "TOKEN") {
+		// Сохранение сообщения в Map
+		pendingResponses.set(startToken || userId, {
+			type: "TOKEN",
+			token: token,
+			userId: userId,
+		})
+		console.log("Сообщение сохранено для startToken или userId:", startToken || userId)
+
+		// Отправка подтверждения обратно
+		res.send("Сообщение получено и сохранено")
+	} else {
+		res.status(400).send("Неверный тип сообщения")
+	}
+})
+
+// Обработка POST запросов
+app.get("/api/message-get", (req, res) => {
+	const { startToken, userId } = req.query
+
+	if (!startToken && !userId) {
+		return res.status(400).send("Не указан startToken или userId")
+	}
+
+	const key = startToken || userId
+	const response = pendingResponses.get(key)
+
+	if (response) {
+		// Отправка сохраненного сообщения обратно
+		res.json(response)
+	} else {
+		res.status(404).send("Сообщение не найдено")
+	}
+})
+
 // Получение статуса пользователя
 app.get("/api/status", authenticateToken, async (req, res) => {
 	const userId = req.userId
