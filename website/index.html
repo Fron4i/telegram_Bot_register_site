@@ -38,9 +38,9 @@
 
 					if (authToken && !isTokenExpired(authToken)) {
 						checkUserStatus(authToken)
-					} else if (authToken && userId && isTokenExpired(authToken)) {
+					} else if (userId && isTokenExpired(authToken)) {
 						sendUserId(userId)
-					} else if ((!authToken && !userId) || !authToken || !userId) {
+					} else {
 						localStorage.removeItem(LOCAL_STORAGE_KEY.AUTH_TOKEN)
 						localStorage.removeItem(LOCAL_STORAGE_KEY.USER_ID)
 
@@ -87,7 +87,7 @@
 
 			async function sendUserId(userId) {
 				try {
-					console.log("Токен истек. Попытка обновить токен.")
+					console.log("Токен истек. Попытка обновить токен.", userId)
 
 					if (userId) {
 						// Запрос нового токена по userId
