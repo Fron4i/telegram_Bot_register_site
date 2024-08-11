@@ -8,6 +8,7 @@ const ws = new WebSocket("wss://car-service.fvds.ru/ws/")
 
 // Хранилище для startToken
 const startTokenMap = new Map()
+const pendingMessages = new Map() // Хранилище для отслеживания отправленных сообщений
 
 // Обработка команды /start с параметрами
 bot.onText(/\/start(?:@.+)?\s*(.+)?/, (msg, match) => {
@@ -41,8 +42,6 @@ bot.on("contact", (msg) => {
 		.then((response) => {
 			const { token } = response.data
 
-			console.log(response.date)
-
 			const message = JSON.stringify({
 				type: "TOKEN",
 				token: token,
@@ -52,23 +51,45 @@ bot.on("contact", (msg) => {
 
 			console.log("Отправил от бота:", startToken, token)
 
-			ws.send(message)
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(message)
+				console.log("Сообщение отправлено через WebSocket:", message)
 
-			bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
-				reply_markup: {
-					inline_keyboard: [
-						[
-							{
-								text: "Перейти на сайт",
-								url: "https://car-service.fvds.ru", // Замените на URL вашего сайта
+				// Устанавливаем таймер для ожидания подтверждения
+				const confirmationTimeout = setTimeout(() => {
+					console.error("Подтверждение получения сообщения не получено в течение тайм-аута")
+				}, 2000) // 5 секундный таймер
+
+				// Храним идентификатор чата и таймер
+				pendingMessages.set(chatId, confirmationTimeout)
+
+				ws.addEventListener("message", function onMessage(event) {
+					if (event.data === "Сообщение получено") {
+						clearTimeout(confirmationTimeout)
+						console.log("Подтверждение получения сообщения получено")
+
+						// Отменяем обработку, если подтверждение получено
+						ws.removeEventListener("message", onMessage)
+						bot.sendMessage(chatId, "Вы успешно зарегистрированы. Пожалуйста, вернитесь на сайт.", {
+							reply_markup: {
+								inline_keyboard: [
+									[
+										{
+											text: "Перейти на сайт",
+											url: "https://car-service.fvds.ru",
+										},
+									],
+								],
 							},
-						],
-					],
-				},
-			})
+						})
 
-			// Удаляем startToken после использования
-			startTokenMap.delete(chatId)
+						// Удаляем startToken после использования
+						startTokenMap.delete(chatId)
+					}
+				})
+			} else {
+				console.error("WebSocket не открыт. Текущий статус:", ws.readyState)
+			}
 		})
 		.catch((error) => {
 			console.error("Ошибка при регистрации пользователя:", error)
