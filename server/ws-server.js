@@ -1,17 +1,25 @@
 const fs = require("fs")
 const https = require("https")
+const express = require("express")
 const WebSocket = require("ws")
+const bodyParser = require("body-parser")
 
 const keyPath = "/etc/letsencrypt/live/car-service.fvds.ru/privkey.pem"
 const certPath = "/etc/letsencrypt/live/car-service.fvds.ru/fullchain.pem"
 
 // Создание HTTPS-сервера
-const httpsServer = https.createServer({
-	key: fs.readFileSync(keyPath),
-	cert: fs.readFileSync(certPath),
-})
+const app = express()
+app.use(bodyParser.json()) // Парсинг JSON тела запросов
 
-// Создание WebSocket-сервера, используя HTTPS-сервер
+const httpsServer = https.createServer(
+	{
+		key: fs.readFileSync(keyPath),
+		cert: fs.readFileSync(certPath),
+	},
+	app
+)
+
+// Создание WebSocket-сервера
 const wss = new WebSocket.Server({
 	server: httpsServer,
 	verifyClient: (info, done) => {
@@ -19,10 +27,16 @@ const wss = new WebSocket.Server({
 	},
 })
 
-// Хранилище отложенных ответов
-const pendingResponses = new Map()
+const pendingResponses = new Map() // Хранилище для отложенных ответов
 
 wss.on("connection", (ws) => {
+	console.log("WebSocket клиент подключен")
+
+	// Отправка всех отложенных сообщений, если клиент подключен
+	pendingResponses.forEach((message, key) => {
+		ws.send(JSON.stringify(message))
+	})
+
 	ws.on("message", (message) => {
 		const messageString = message.toString() // Преобразование буфера в строку
 		const parsedMessage = JSON.parse(messageString) // Парсинг JSON строки
@@ -72,9 +86,35 @@ wss.on("connection", (ws) => {
 			ws.send("Сообщение получено")
 		}
 	})
+
+	ws.on("close", () => {
+		console.log("WebSocket клиент отключен")
+	})
+})
+
+// Обработка POST запросов
+app.post("/api/message", (req, res) => {
+	const { type, token, startToken, userId } = req.body
+
+	console.log("Получено POST сообщение =>", { type, token, startToken, userId })
+
+	if (type === "TOKEN") {
+		// Сохранение сообщения в Map
+		pendingResponses.set(startToken || userId, {
+			type: "TOKEN",
+			token: token,
+			userId: userId,
+		})
+		console.log("Сообщение сохранено для startToken или userId:", startToken || userId)
+
+		// Отправка подтверждения обратно
+		res.send("Сообщение получено и сохранено")
+	} else {
+		res.status(400).send("Неверный тип сообщения")
+	}
 })
 
 // Запуск HTTPS-сервера и WebSocket-сервера на одном порту
 httpsServer.listen(8081, () => {
-	console.log("WebSocket сервер запущен на wss://car-service.fvds.ru/ws/")
+	console.log("HTTP сервер и WebSocket сервер запущены на https://car-service.fvds.ru/api/message")
 })
