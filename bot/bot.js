@@ -41,8 +41,8 @@ bot.on("contact", (msg) => {
 	axios
 		.post("https://car-service.fvds.ru/api/register", {
 			id: contact.user_id,
-			first_name: contact.first_name,
-			last_name: contact.last_name,
+			first_name: contact.first_name || "", // Если first_name отсутствует, передаем пустую строку
+			last_name: contact.last_name || "", // Если last_name отсутствует, передаем пустую строку
 			startToken: startToken,
 		})
 		.then((response) => {

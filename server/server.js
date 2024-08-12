@@ -52,7 +52,7 @@ function authenticateToken(req, res, next) {
 
 // Регистрация пользователя через бота
 app.post("/api/register", async (req, res) => {
-	const { id, first_name, last_name, startToken } = req.body
+	const { id, first_name = "", last_name = "", startToken } = req.body
 	console.log("Received registration request:", req.body)
 
 	if (!id || !startToken) {
@@ -61,18 +61,18 @@ app.post("/api/register", async (req, res) => {
 	}
 
 	try {
-		// Invalidate all previous tokens for this user
+		// Аннулирование всех предыдущих токенов для этого пользователя
 		await User.update({ isValid: false }, { where: { id } })
 		console.log(`Invalidated old tokens for user: ${id}`)
 
-		// Create or update user and set the new session as valid
+		// Создание или обновление пользователя и установка новой сессии как валидной
 		const [user, created] = await User.upsert({
 			id,
-			first_name,
-			last_name,
-			token: null, // Reset token initially
-			isValid: true, // Set new session as valid
-			startToken, // Save new start token directly
+			first_name: first_name || null, // Присваиваем null, если поле пустое
+			last_name: last_name || null, // Присваиваем null, если поле пустое
+			token: null, // Сбрасываем токен
+			isValid: true,
+			startToken,
 		})
 
 		console.log("User registered successfully:", user.toJSON())

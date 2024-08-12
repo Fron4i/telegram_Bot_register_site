@@ -17,32 +17,29 @@ const User = sequelize.define(
 		},
 		first_name: {
 			type: DataTypes.STRING,
-			allowNull: false,
+			allowNull: true, // Поле теперь необязательное
 		},
 		last_name: {
 			type: DataTypes.STRING,
-			allowNull: false,
+			allowNull: true, // Поле теперь необязательное
 		},
-		// Поле для хранения основного токена (authToken)
+		// Остальные поля без изменений
 		token: {
 			type: DataTypes.STRING,
 		},
-		// Поле для хранения стартового токена
 		startToken: {
 			type: DataTypes.STRING,
 		},
-		// Поле для хранения даты истечения основного токена
 		tokenExpires: {
 			type: DataTypes.DATE,
 		},
-		// Поле для указания, является ли основной токен валидным
 		isValid: {
 			type: DataTypes.BOOLEAN,
-			defaultValue: true, // По умолчанию токен валиден
+			defaultValue: true,
 		},
 	},
 	{
-		tableName: "Users", // Указываем имя таблицы в базе данных
+		tableName: "Users",
 	}
 )
 
